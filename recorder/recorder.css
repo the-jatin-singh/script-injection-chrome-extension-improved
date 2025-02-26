@@ -1,0 +1,180 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container {
+    width: 100vw;
+    color: #334440;
+    font-family: 'Inter', sans-serif;
+}
+
+
+
+#pre-recording {
+    width: 100%;
+}
+
+#pre-recording img {
+    padding: 20px;
+    margin-right: auto;
+}
+
+
+#recording-status {
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+    padding: 36px;
+    text-align: center;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+#recording-status>p {
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 31.2px;
+    letter-spacing: 0%;
+}
+
+#recording-status>h2 {
+    font-weight: 600;
+    font-size: 100px;
+    line-height: 100px;
+    letter-spacing: 0%;
+}
+
+.note {
+    width: auto;
+    margin: auto;
+}
+
+.note p {
+    text-align: center;
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 26px;
+    letter-spacing: 0%;
+}
+
+.note li {
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 30px;
+    letter-spacing: -1%;
+    text-align: left;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.circle-animation {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    z-index: -1; /* This ensures the circles appear behind the text */
+  }
+/* Base circle styles */
+.wave-circle {
+    position: absolute;
+    bottom: -300px;
+    border-radius: 50% 50% 0 0;
+    border: 4px solid #C8F7E0;
+    opacity: 0; /* Start with opacity 0 */
+    animation: fadeIn 2s forwards; /* Fade in animation */
+}
+
+.wave-circle:nth-child(1) {
+    left: -5%;
+    width: 60%;
+    height: 400px;
+    background-color: rgba(162, 238, 212, 0.3);
+    animation: wave-left 12s ease-in-out infinite, fadeIn 2s forwards;
+}
+
+.wave-circle:nth-child(2) {
+    left: 15%;
+    width: 70%;
+    height: 450px;
+    background-color: rgba(162, 238, 212, 0.2);
+    animation: wave-right 12s ease-in-out infinite 0.8s, fadeIn 2s forwards 0.8s;
+}
+
+.wave-circle:nth-child(3) {
+    left: 40%;
+    width: 65%;
+    height: 380px;
+    background-color: rgba(162, 238, 212, 0.25);
+    animation: wave-left 11s ease-in-out infinite 1.5s, fadeIn 2s forwards 1.5s;
+}
+
+.wave-circle:nth-child(4) {
+    left: 60%;
+    width: 55%;
+    height: 420px;
+    background-color: rgba(162, 238, 212, 0.3);
+    animation: wave-right 13s ease-in-out infinite 2.5s, fadeIn 2s forwards 2.5s;
+}
+
+.wave-circle:nth-child(5) {
+    left: 75%;
+    width: 50%;
+    height: 350px;
+    background-color: rgba(162, 238, 212, 0.2);
+    animation: wave-left 12.5s ease-in-out infinite 3.2s, fadeIn 2s forwards 3.2s;
+}
+
+@keyframes wave-left {
+    0%, 100% {
+        transform: translateX(-20%);
+        background-color: rgba(255, 255, 255, 0.7);
+    }
+    50% {
+        transform: translateX(20%);
+        background-color: rgba(162, 238, 212, 0.5);
+    }
+}
+
+@keyframes wave-right {
+    0%, 100% {
+        transform: translateX(20%);
+        background-color: rgba(162, 238, 212, 0.5);
+    }
+    50% {
+        transform: translateX(-20%);
+        background-color: rgba(255, 255, 255, 0.7);
+    }
+}
+
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+#recording-status {
+    position: relative;
+    z-index: 1;
+}

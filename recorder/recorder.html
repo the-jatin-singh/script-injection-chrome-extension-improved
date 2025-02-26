@@ -1,14 +1,44 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Screen Recorder</title>
+  <title>BotGauge Screen Recorder</title>
   <link rel="stylesheet" href="recorder.css">
 </head>
+
 <body>
   <div class="container">
-    <h2>Select screen to record</h2>
-    <div id="sourceList"></div>
+
+    <div id="pre-recording">
+      <img src="../assets/botgauge.svg" />
+      <div id="sourceList"></div>
+    </div>
+
+    <div id="recording-status" style="display: none;">
+      <img src="../assets/botgauge.svg" width="155" />
+      <p>Recording in progress...</p>
+      <h2 class="timer">01h:25m</h2>
+      <div>Action button</div>
+      <div class="note">
+        <p>Note:</p>
+        <ul>
+          <li>Do not close this tab while recording and start recoding the test. </li>
+          <li>When its time to end the recording click stop.</li>
+        </ul>
+      </div>
+
+      <div class="circle-animation">
+        <div class="wave-circle"></div>
+        <div class="wave-circle"></div>
+        <div class="wave-circle"></div>
+        <div class="wave-circle"></div>
+        <div class="wave-circle"></div>
+      </div>
+
+    </div>
+
   </div>
   <script src="recorder.js"></script>
 </body>
+
 </html>

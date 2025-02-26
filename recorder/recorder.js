@@ -7,6 +7,10 @@ async function startRecording() {
       video: { mediaSource: "screen" }
     });
 
+    // Update UI to show recording status
+    document.getElementById('pre-recording').style.display = 'none';
+    document.getElementById('recording-status').style.display = 'flex';
+
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = handleDataAvailable;
     mediaRecorder.onstop = handleStop;
@@ -30,11 +34,17 @@ async function startRecording() {
       if (message.action === 'stopRecording') {
         stream.getTracks().forEach(track => track.stop());
         mediaRecorder.stop();
+        // Reset UI (although the page will be closed soon)
+        document.getElementById('pre-recording').style.display = 'block';
+        document.getElementById('recording-status').style.display = 'none';
       }
     });
 
   } catch (err) {
     console.error(err);
+    // Reset UI if there's an error
+    document.getElementById('pre-recording').style.display = 'block';
+    document.getElementById('recording-status').style.display = 'none';
   }
 }
 
