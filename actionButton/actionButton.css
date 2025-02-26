@@ -29,6 +29,7 @@
 }
 
 .btg-action-btns-container .pause:hover,
+.btg-action-btns-container .play:hover,
 .btg-action-btns-container .reset:hover,
 .btg-action-btns-container .delete:hover,
 .btg-action-btns-container .info:hover,
@@ -56,7 +57,7 @@
   gap: 8px;
 }
 
-.btg-action-btns-container #timer {
+.btg-action-btns-container #action-button-timer {
   width: auto;
   height: 36px;
   display: inline-flex;

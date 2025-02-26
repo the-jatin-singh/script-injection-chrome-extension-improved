@@ -24,6 +24,28 @@ function injectActionButtons() {
                 <path d="M15.625 2.1875H12.5C12.0856 2.1875 11.6882 2.35212 11.3951 2.64515C11.1021 2.93817 10.9375 3.3356 10.9375 3.75V16.25C10.9375 16.6644 11.1021 17.0618 11.3951 17.3549C11.6882 17.6479 12.0856 17.8125 12.5 17.8125H15.625C16.0394 17.8125 16.4368 17.6479 16.7299 17.3549C17.0229 17.0618 17.1875 16.6644 17.1875 16.25V3.75C17.1875 3.3356 17.0229 2.93817 16.7299 2.64515C16.4368 2.35212 16.0394 2.1875 15.625 2.1875ZM15.3125 15.9375H12.8125V4.0625H15.3125V15.9375ZM7.5 2.1875H4.375C3.9606 2.1875 3.56317 2.35212 3.27015 2.64515C2.97712 2.93817 2.8125 3.3356 2.8125 3.75V16.25C2.8125 16.6644 2.97712 17.0618 3.27015 17.3549C3.56317 17.6479 3.9606 17.8125 4.375 17.8125H7.5C7.9144 17.8125 8.31183 17.6479 8.60485 17.3549C8.89788 17.0618 9.0625 16.6644 9.0625 16.25V3.75C9.0625 3.3356 8.89788 2.93817 8.60485 2.64515C8.31183 2.35212 7.9144 2.1875 7.5 2.1875ZM7.1875 15.9375H4.6875V4.0625H7.1875V15.9375Z" fill="#5A706A"/>
             </svg>`;
 
+        const playButton = document.createElement('div');
+        playButton.className = 'icon play';
+        playButton.style.display = 'none';
+        playButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A706A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
+
+        let isRecordingPaused = false;
+
+        pauseButton.onclick = () => {
+            chrome.runtime.sendMessage({ action: 'pauseRecording' });
+            pauseButton.style.display = 'none';
+            playButton.style.display = 'flex';
+            isRecordingPaused = true;
+        };
+
+        playButton.onclick = () => {
+            chrome.runtime.sendMessage({ action: 'resumeRecording' });
+            playButton.style.display = 'none';
+            pauseButton.style.display = 'flex';
+            isRecordingPaused = false;
+        };
+
         const stopButton = document.createElement('div');
         stopButton.className = 'icon stop';
         stopButton.innerHTML = `
@@ -60,11 +82,6 @@ function injectActionButtons() {
         // Make button show it's draggable
         grabButton.style.cursor = 'grab';
 
-        pauseButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'pauseRecording' });
-            // Toggle pause/resume state
-            pauseButton.classList.toggle('paused');
-        };
         infoButton.onclick = () => {
             chrome.runtime.sendMessage({ action: 'infoRecording' });
         };
@@ -82,11 +99,12 @@ function injectActionButtons() {
         const pausePlayContainer = document.createElement('div');
         pausePlayContainer.className = 'btns-container';
         pausePlayContainer.appendChild(pauseButton);
+        pausePlayContainer.appendChild(playButton);
         pausePlayContainer.appendChild(stopButton);
 
         const timer = document.createElement('div');
-        timer.id = 'timer';
-        timer.innerHTML = `00m:25s`;
+        timer.id = 'action-button-timer';
+        timer.innerHTML = `00m:00s`;
 
         const resetDeleteContainer = document.createElement('div');
         resetDeleteContainer.className = 'btns-container';
@@ -166,6 +184,30 @@ function injectActionButtons() {
                 document.body.appendChild(container);
             });
         }
+
+        // Add message listener for recording state changes
+        chrome.runtime.onMessage.addListener((message) => {
+            if (message.action === 'recordingStateChanged') {
+                const pauseButton = document.querySelector('.icon.pause');
+                const playButton = document.querySelector('.icon.play');
+                if (pauseButton && playButton) {
+                    if (message.isPaused) {
+                        pauseButton.style.display = 'none';
+                        playButton.style.display = 'flex';
+                    } else {
+                        playButton.style.display = 'none';
+                        pauseButton.style.display = 'flex';
+                    }
+                }
+            }
+            // Keep existing timer update listener
+            if (message.action === 'updateTimer') {
+                const timerElement = document.getElementById('action-button-timer');
+                if (timerElement) {
+                    timerElement.innerHTML = message.time;
+                }
+            }
+        });
     }
 }
 

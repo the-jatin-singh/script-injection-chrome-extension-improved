@@ -93,16 +93,20 @@
     width: 100%;
     height: 200px;
     overflow: hidden;
-    z-index: -1; /* This ensures the circles appear behind the text */
-  }
+    z-index: -1;
+    /* This ensures the circles appear behind the text */
+}
+
 /* Base circle styles */
 .wave-circle {
     position: absolute;
     bottom: -300px;
     border-radius: 50% 50% 0 0;
     border: 4px solid #C8F7E0;
-    opacity: 0; /* Start with opacity 0 */
-    animation: fadeIn 2s forwards; /* Fade in animation */
+    opacity: 0;
+    /* Start with opacity 0 */
+    animation: fadeIn 2s forwards;
+    /* Fade in animation */
 }
 
 .wave-circle:nth-child(1) {
@@ -146,10 +150,13 @@
 }
 
 @keyframes wave-left {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateX(-20%);
         background-color: rgba(255, 255, 255, 0.7);
     }
+
     50% {
         transform: translateX(20%);
         background-color: rgba(162, 238, 212, 0.5);
@@ -157,10 +164,13 @@
 }
 
 @keyframes wave-right {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateX(20%);
         background-color: rgba(162, 238, 212, 0.5);
     }
+
     50% {
         transform: translateX(-20%);
         background-color: rgba(255, 255, 255, 0.7);
@@ -177,4 +187,46 @@
 #recording-status {
     position: relative;
     z-index: 1;
+}
+
+.recorder-controls {
+    margin: 20px 0;
+}
+
+.recorder-controls .btns-container {
+    display: flex;
+    width: auto;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+
+    background-color: white;
+    padding: 0 16px;
+    height: 60px;
+    border-radius: 59px;
+    border: 1px solid #B9C8C2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.recorder-controls .icon {
+    cursor: pointer;
+    background: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recorder-controls .icon:hover {
+    background-color: #F2F7F4;
+}
+
+.recorder-controls .icon.stop {
+    background: #12B97B;
+}
+
+.recorder-controls .icon.stop:hover {
+    background: #168C69;
 }
