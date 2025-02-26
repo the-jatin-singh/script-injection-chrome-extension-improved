@@ -1,0 +1,74 @@
+.btg-action-btns-container {
+  position: fixed;
+  background: #FFFFFF;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+
+  width: auto;
+  height: 60px;
+  border-radius: 59px;
+  gap: 16px;
+
+  border: 1px solid #B9C8C2;
+  box-shadow: 0px 3px 6px 0px #0000001A;
+  padding: 0 16px;
+
+
+}
+
+.btg-action-btns-container .icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.btg-action-btns-container .pause:hover,
+.btg-action-btns-container .reset:hover,
+.btg-action-btns-container .delete:hover,
+.btg-action-btns-container .info:hover,
+.btg-action-btns-container .grab:hover {
+  background-color: #F2F7F4;
+}
+
+.btg-action-btns-container .stop {
+  background: #12B97B;
+}
+
+.btg-action-btns-container .stop:hover {
+  background: #168C69;
+}
+
+.btg-action-btns-container .grab {
+  cursor: grab;
+}
+
+.btg-action-btns-container .btns-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btg-action-btns-container #timer {
+  width: auto;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  padding: 0 12px;
+  border: 1px solid #D9E7E0;
+
+  color:  #191F1F ;
+
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+}
