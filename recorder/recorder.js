@@ -48,7 +48,9 @@ function handleStop() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
   const blobUrl = URL.createObjectURL(blob);
   chrome.tabs.create({ 
-    url: `/viewer/viewer.html?blobUrl=${encodeURIComponent(blobUrl)}`
+    url: `/viewer/viewer.html?blobUrl=${encodeURIComponent(blobUrl)}` 
+  }, (tab) => {
+    chrome.runtime.sendMessage({ action: 'closePinnedTab', newTabId: tab.id });
   });
   recordedChunks = [];
 }

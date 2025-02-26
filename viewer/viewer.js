@@ -9,3 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer.src = blobUrl;
     }
 });
+
+document.getElementById('exitButton').addEventListener('click', () => {
+    chrome.tabs.getCurrent((tab) => {
+      chrome.tabs.remove(tab.id);
+    });
+  });

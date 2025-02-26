@@ -1,26 +1,205 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Screen Recording Viewer</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
+            background-color: #fff;
+            font-family: 'Inter', sans-serif;
+
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            width: 100vw;
             margin: 0;
             background-color: #f0f0f0;
         }
-        video {
-            max-width: 90%;
-            max-height: 90vh;
-            border: 1px solid #ccc;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        nav {
+            width: 100%;
+            height: 68px;
+            border-bottom: 1px solid #CFD9D4;
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            padding: 0 40px;
+
         }
+
+        p {
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 24px;
+            letter-spacing: 0%;
+            text-align: center;
+
+            color: #191F1F;
+
+        }
+
+        .main-container {
+            width: 100vw;
+            margin-top: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            padding: 0 40px;
+        }
+
+        video {
+            width: 60vw;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-right {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .right-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .success-img {
+            margin-bottom: 2rem;
+        }
+
+        .start-gen-container {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .start-gen-container>button {
+            width: 100%;
+            background-color: #12B97B;
+            height: 40px;
+            border-radius: 6px;
+            color: #FFFFFF;
+            border: none;
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 24px;
+            letter-spacing: 0%;
+            cursor: pointer;
+        }
+
+        .or {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .or div {
+            height: 1px;
+            width: 100%;
+            background-color: #D9E7E0;
+        }
+
+        .or p {
+            font-weight: 400;
+            font-size: 14px;
+            color: #5A706A;
+            margin: 2rem 0;
+        }
+
+        .re-record-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .re-record-btns-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .re-record-btns-container button {
+            color: #12B97B;
+            background-color: transparent;
+            height: 40px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 24px;
+            letter-spacing: 0%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .re-record-btns-container button:first-child {
+            border: 1px solid #12B97B;
+            font-weight: 600;
+            border-radius: 6px;
+        }
+        
+        .re-record-btns-container button:last-child:hover {
+            text-decoration: underline;
+        }
+
     </style>
 </head>
+
 <body>
-    <video id="recordingPlayer" controls autoplay></video>
+    <nav>
+        <a href="https://botgauge.com/" target="_blank">
+            <img src="../assets/botgauge.svg" alt="Botgauge-logo">
+        </a>
+    </nav>
+    <div class="main-container">
+        <video id="recordingPlayer" controls autoplay></video>
+        <div class="main-right">
+            <div class="right-content">
+                <img class="success-img" src="../assets/success-recording.svg" alt="recorded-successfully">
+                <div class="start-gen-container">
+                    <p>If the video contains all the information for the test cases then start test case generation</p>
+                    <button>Start generation process</button>
+                </div>
+                <div class="or">
+                    <div></div>
+                    <p>or</p>
+                    <div></div>
+                </div>
+                <div class="re-record-container">
+                    <p>If the video is incomplete or is missing key information?</p>
+                    <div class="re-record-btns-container">
+                        <button>Re-record Video</button>
+                        <button id="exitButton">Exit</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <script src="viewer.js"></script>
 </body>
+
 </html>

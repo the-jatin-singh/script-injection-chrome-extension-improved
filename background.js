@@ -63,5 +63,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       });
     }
+  } else if (message.action === 'closePinnedTab') {
+    if (recordingTabId) {
+      const newTabId = message.newTabId;
+      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+        if (tabId === newTabId && changeInfo.status === 'complete') {
+          chrome.tabs.remove(recordingTabId);
+          recordingTabId = null;
+          chrome.tabs.onUpdated.removeListener(listener);
+        }
+      });
+    }
   }
 });
