@@ -33,7 +33,20 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 3rem;
+}
+
+.logo {
+    width: 219px;
+    height: 56px;
+    position: fixed;
+    top: 22px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: white;
+
 }
 
 #recording-status>p {
@@ -48,11 +61,12 @@
     font-size: 100px;
     line-height: 100px;
     letter-spacing: 0%;
+    margin: 16px 0;
 }
 
 .note {
-    width: auto;
-    margin: auto;
+    width: 626px;
+    margin-top: 8px;
 }
 
 .note p {
@@ -69,6 +83,8 @@
     line-height: 30px;
     letter-spacing: -1%;
     text-align: left;
+    text-align: justify;
+
 }
 
 
@@ -191,6 +207,9 @@
 
 .recorder-controls {
     margin: 20px 0;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
 }
 
 .recorder-controls .btns-container {
