@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Countdown</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh !important;
+      width: 100vw !important;
+      font-family: Arial, sans-serif;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 99999;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background-color: #F7FCF9;
+    }
+    .outer-circle {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 6px solid #12B97B;
+      position: relative;
+      z-index: 2;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0% { border-color: rgba(18, 185, 123, 1); }
+      50% { border-color: rgba(18, 185, 123, 0); }
+      100% { border-color: rgba(18, 185, 123, 1); }
+    }
+    .countdown-container {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background-color: #12B97B;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+      color: white;
+      text-align: center;
+      position: relative;
+    }
+    .countdown-container span {
+      font-size: 22px;
+      font-weight: 600;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .number-circle {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background-color: #12B97B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .countdown-number {
+      font-size: 90px;
+      font-weight: bold;
+      position: absolute;
+      transition: transform 1s ease-in-out;
+    }
+    iframe {
+      color-scheme: light;
+      background-color: transparent;
+    }
+  </style>
+</head>
+<body>
+    <div id="btg-screen-recorder-timer" class="container">
+        <div class="overlay"></div>
+        <div class="outer-circle">
+          <div class="countdown-container">
+            <span>Starting in</span>
+            <div class="number-circle">
+              <div id="countdown" class="countdown-number">3</div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+  <script>
+    let count = 3;
+    let countdownElement = document.getElementById("countdown");
+    const countdownContainer = document.querySelector(".number-circle");
+    
+    function updateCountdown() {
+      if (count > 1) {
+        const newNumber = document.createElement("div");
+        newNumber.className = "countdown-number";
+        newNumber.textContent = count - 1;
+        newNumber.style.transform = "translateY(100%)";
+        countdownContainer.appendChild(newNumber);
+        setTimeout(() => {
+          newNumber.style.transform = "translateY(0)";
+          countdownElement.style.transform = "translateY(-100%)";
+        }, 50);
+        setTimeout(() => {
+          countdownElement.remove();
+          countdownElement = newNumber;
+        }, 1000);
+      } else {
+        setTimeout(() => {
+            document.getElementById("btg-screen-recorder-timer").remove();
+          // setTimeout(() => {
+          //   window.parent.postMessage('removeIframe', '*');
+          // }, 500);
+        }, 1500);
+      }
+      count--;
+    }
+    
+    setTimeout(() => {
+      updateCountdown();
+      const countdownInterval = setInterval(() => {
+        if (count > 0) {
+          updateCountdown();
+        } else {
+          clearInterval(countdownInterval);
+        }
+      }, 1500);
+    }, 0);
+  </script>
+</body>
+</html>

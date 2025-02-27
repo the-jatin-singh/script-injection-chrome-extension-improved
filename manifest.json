@@ -18,5 +18,13 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "recorder/recorder.html",
+      "recorder/recorder.js",
+      "viewer/viewer.html"
+    ],
+    "matches": ["<all_urls>"]
+  }]
 }

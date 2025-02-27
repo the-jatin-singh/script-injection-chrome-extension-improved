@@ -30,18 +30,21 @@ chrome.tabs.onCreated.addListener((tab) => {
   }
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'startRecording') {
     recordingTabId = message.tabId;
     isRecording = true;
-    // Inject into all existing tabs
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        if (tab.id !== recordingTabId) {
-          injectActionButton(tab.id);
-        }
-      });
-    });
+
+    // Store the tab ID
+    await chrome.storage.local.set({ recordingTabId: recordingTabId });
+
+    // Inject into all existing tabs except the recorder tab
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id !== recordingTabId && tab.id !== chrome.tabs.TAB_ID_NONE) {
+        injectActionButton(tab.id);
+      }
+    }
   } else if (message.action === 'stopRecording') {
     isRecording = false;
     if (recordingTabId) {
@@ -73,6 +76,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.tabs.onUpdated.removeListener(listener);
         }
       });
+    }
+  } else if (message.action === 'createRecordingTab') {
+    // Create recording tab from background script
+    const tab = await chrome.tabs.create({
+      url: 'recorder/recorder.html',
+      pinned: true
+    });
+    recordingTabId = tab.id;
+    isRecording = true;
+    // Inject into all existing tabs except the recorder tab
+    const tabs = await chrome.tabs.query({});
+    for (const existingTab of tabs) {
+      if (existingTab.id !== recordingTabId && existingTab.id !== chrome.tabs.TAB_ID_NONE) {
+        injectActionButton(existingTab.id);
+      }
     }
   }
 });
