@@ -74,5 +74,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     }
+  } else if (message.action === 'screenShareCanceled') {
+    if (recordingTabId) {
+      chrome.tabs.remove(recordingTabId);
+      recordingTabId = null;
+    }
   }
 });

@@ -1,12 +1,12 @@
 body {
-  width: 200px;
+  /* width: 200px; */
   padding: 10px;
 }
 
 button {
   width: 100%;
   padding: 10px;
-  background: #4CAF50;
+  background: #9C2350;
   color: white;
   border: none;
   border-radius: 4px;

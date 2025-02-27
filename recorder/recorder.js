@@ -210,13 +210,20 @@ async function startRecording() {
     });
 
   } catch (err) {
-    console.error(err);
+    if (err.name === "NotAllowedError") {
+      console.log("User canceled screen sharing.");
+      chrome.runtime.sendMessage({ action: "screenShareCanceled" }); // Notify extension
+    } else {
+      console.error("Error starting screen share:", err);
+    }
+    
     clearInterval(timerInterval); // Clear timer if there's an error
     // Reset UI if there's an error
     document.getElementById('pre-recording').style.display = 'block';
     document.getElementById('recording-status').style.display = 'none';
   }
 }
+
 
 function handleDataAvailable(event) {
   if (event.data.size > 0) {
