@@ -1,7 +1,7 @@
 let recordingTabId = null;
 let isRecording = false;
 
-async function injectStopButton(tabId) {
+async function injectActionButton(tabId) {
   try {
     await chrome.scripting.insertCSS({
       target: { tabId },
@@ -19,14 +19,14 @@ async function injectStopButton(tabId) {
 // Handle tab updates
 chrome.webNavigation.onCompleted.addListener((details) => {
   if (isRecording && details.frameId === 0) {
-    injectStopButton(details.tabId);
+    injectActionButton(details.tabId);
   }
 });
 
 // Handle new tabs
 chrome.tabs.onCreated.addListener((tab) => {
   if (isRecording && tab.id !== recordingTabId) {
-    injectStopButton(tab.id);
+    injectActionButton(tab.id);
   }
 });
 
@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
         if (tab.id !== recordingTabId) {
-          injectStopButton(tab.id);
+          injectActionButton(tab.id);
         }
       });
     });
