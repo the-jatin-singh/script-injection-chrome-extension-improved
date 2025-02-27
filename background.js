@@ -77,7 +77,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         }
       });
     }
-  } else if (message.action === 'createRecordingTab') {
+  }
+  else if (message.action === 'screenShareCanceled') {
+    if (recordingTabId) {
+      chrome.tabs.remove(recordingTabId);
+      recordingTabId = null;
+    }
+  }
+  else if (message.action === 'createRecordingTab') {
     // Create recording tab from background script
     const tab = await chrome.tabs.create({
       url: 'recorder/recorder.html',
