@@ -10,6 +10,7 @@ function isValidUrl(url) {
            url !== 'about:newtab';
 }
 
+
 async function injectOverlay(tab) {
   const overlayCSS = `
       .btg-overlay {
