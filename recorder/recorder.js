@@ -6,6 +6,19 @@ let pausedTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
 
+async function switchToPreviousTab() {
+  try {
+    console.log("swoutching")
+    const data = await chrome.storage.local.get("previousTabId");
+    console.log(data)
+    if (data.previousTabId) {
+      await chrome.tabs.update(data.previousTabId, { active: true });
+    }
+  } catch (error) {
+    console.error("Error switching to previous tab:", error);
+  }
+}
+
 function updateTimer() {
   if (!isPaused) {
     const currentTime = new Date().getTime();
@@ -111,10 +124,12 @@ function initializeRecorderControls() {
 }
 
 async function startRecording() {
+  
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: { mediaSource: "screen" }
     });
+    await switchToPreviousTab()
 
     // Update UI to show recording status
     document.getElementById('pre-recording').style.display = 'none';
@@ -210,13 +225,21 @@ async function startRecording() {
     });
 
   } catch (err) {
-    console.error(err);
+    if (err.name === "NotAllowedError") {
+      console.log("User canceled screen sharing.");
+      await switchToPreviousTab()
+      chrome.runtime.sendMessage({ action: "screenShareCanceled" }); // Notify extension
+    } else {
+      console.error("Error starting screen share:", err);
+    }
+    
     clearInterval(timerInterval); // Clear timer if there's an error
     // Reset UI if there's an error
     document.getElementById('pre-recording').style.display = 'block';
     document.getElementById('recording-status').style.display = 'none';
   }
 }
+
 
 function handleDataAvailable(event) {
   if (event.data.size > 0) {

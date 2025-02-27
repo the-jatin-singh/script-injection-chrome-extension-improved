@@ -34,9 +34,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'startRecording') {
     recordingTabId = message.tabId;
     isRecording = true;
-
-    // Store the tab ID
-    await chrome.storage.local.set({ recordingTabId: recordingTabId });
+    
+    // Store tab ID in chrome.storage
+    
 
     // Inject into all existing tabs except the recorder tab
     const tabs = await chrome.tabs.query({});
@@ -77,8 +77,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         }
       });
     }
-  } else if (message.action === 'createRecordingTab') {
+  }
+  else if (message.action === 'screenShareCanceled') {
+    if (recordingTabId) {
+      chrome.tabs.remove(recordingTabId);
+      recordingTabId = null;
+    }
+  }
+  else if (message.action === 'createRecordingTab') {
     // Create recording tab from background script
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+    await chrome.storage.local.set({ previousTabId: currentTab.id });
+    console.log("pinned tab")
+
+    // Store the tab ID
+    await chrome.storage.local.set({ recordingTabId: recordingTabId });
     const tab = await chrome.tabs.create({
       url: 'recorder/recorder.html',
       pinned: true
