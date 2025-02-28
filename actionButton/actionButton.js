@@ -1,3 +1,109 @@
+const resetDialogCSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    .btg-record-reset__overlay, .btg-reset-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .btg-record-reset__dialog {
+        background: white;
+        padding: 24px;
+        width: 620px;
+        height: 234px;
+        border-radius: 8px;
+        text-align: left;
+        box-sizing: border-box;
+        position: relative;
+        font-family: inherit;
+    }
+
+    .btg-record-reset__heading {
+        color: #191F1F;
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 16px;
+        font-family: inherit;
+        font-weight: 600;
+    }
+
+    .btg-record-reset__description {
+        color: #191F1F;
+        font-size: 16px;
+        margin-bottom: 24px;
+        font-family: inherit;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    .btg-record-reset__button-container {
+        position: absolute;
+        right: 24px;
+        bottom: 24px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .btg-record-reset__button {
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 16px;
+        font-family: inherit;
+    }
+
+    .btg-record-reset__button--confirm, .btg-reset-confirm {
+        background: #E56C6C;
+        color: white;
+        border: none;
+        font-family: inherit;
+    }
+
+    .btg-record-reset__button--cancel, .btg-reset-cancel {
+        background: white;
+        color: #191F1F;
+        border: 1px solid #B9C9C2;
+        font-family: inherit;
+    }
+
+    .btg-record-reset__close {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 24px;
+        color: #191F1F;
+        font-family: inherit;
+        line-height: 1;
+        padding: 0;
+    }
+`;
+
+const resetDialogHTML = `
+    <div class="btg-record-reset__overlay btg-reset-overlay">
+        <div class="btg-record-reset__dialog">
+            <button class="btg-record-reset__close">×</button>
+            <h3 class="btg-record-reset__heading">Restart recording</h3>
+            <p class="btg-record-reset__description">Are you sure you want to restart the recording?<br>The recorded video till now will be deleted</p>
+            <div class="btg-record-reset__button-container">
+                <button class="btg-record-reset__button btg-record-reset__button--cancel btg-reset-cancel">Resume recording</button>
+                <button class="btg-record-reset__button btg-record-reset__button--confirm btg-reset-confirm">Restart</button>
+            </div>
+        </div>
+    </div>
+`;
+
 function injectActionButtons() {
     // Remove existing buttons if present
     const existingContainer = document.querySelector('.btg-action-btns-container');
@@ -86,7 +192,71 @@ function injectActionButtons() {
             chrome.runtime.sendMessage({ action: 'infoRecording' });
         };
         resetButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'resetRecording' });
+            // Pause recording first
+            chrome.runtime.sendMessage({ action: 'pauseRecording' });
+
+            // Remove existing dialog if present
+            const existingDialog = document.querySelector('.btg-reset-overlay');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+
+            // Remove existing styles if present
+            const existingStyles = document.querySelector('#btg-reset-dialog-styles');
+            if (existingStyles) {
+                existingStyles.remove();
+            }
+
+            // Inject CSS
+            const style = document.createElement('style');
+            style.id = 'btg-reset-dialog-styles';
+            style.textContent = resetDialogCSS;
+            document.head.appendChild(style);
+
+            // Create temp container and inject HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = resetDialogHTML;
+            document.body.appendChild(tempDiv.firstElementChild);
+
+            // Get dialog elements
+            const overlay = document.querySelector('.btg-reset-overlay');
+            const cancelBtn = document.querySelector('.btg-reset-cancel');
+            const closeBtn = document.querySelector('.btg-record-reset__close');
+            const confirmBtn = document.querySelector('.btg-reset-confirm');
+
+            // Function to remove dialog and resume recording
+            const cleanupAndResume = () => {
+                overlay.remove();
+                style.remove();
+                chrome.runtime.sendMessage({ action: 'resumeRecording' });
+            };
+
+            // Handle cancel button click
+            cancelBtn.onclick = cleanupAndResume;
+
+            // Handle close button click
+            closeBtn.onclick = cleanupAndResume;
+
+            // Handle click outside dialog
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanupAndResume();
+                }
+            };
+
+            // Handle tab change
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && overlay) {
+                    cleanupAndResume();
+                }
+            });
+
+            // Handle confirm button click
+            confirmBtn.onclick = () => {
+                overlay.remove();
+                style.remove();
+                chrome.runtime.sendMessage({ action: 'resetRecording' });
+            };
         };
         deleteButton.onclick = () => {
             chrome.runtime.sendMessage({ action: 'deleteRecording' });
