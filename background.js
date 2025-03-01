@@ -102,6 +102,35 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
     }
   }
+  else if (message.action === 'confirmDeleteRecording') {
+    if (recordingTabId) {
+      // Remove action buttons from all tabs first
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          try {
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              function: () => {
+                const actionBtnContainer = document.querySelector('.btg-action-btns-container');
+                if (actionBtnContainer) actionBtnContainer.remove();
+              }
+            });
+          } catch (e) {
+            console.log(`Could not clean up tab ${tab.id}:`, e);
+          }
+        });
+        // After cleanup, remove the recording tab
+        chrome.tabs.remove(recordingTabId);
+        recordingTabId = null;
+        isRecording = false;
+      });
+    }
+  }
+  else if (message.action === 'showRecorderTab') {
+    if (recordingTabId) {
+      chrome.tabs.update(recordingTabId, { active: true });
+    }
+  }
   else if (message.action === 'createRecordingTab') {
     // Create recording tab from background script
     const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -117,6 +146,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     });
     recordingTabId = tab.id;
     isRecording = true;
+    // Store the tab ID for the info button to use
+    await chrome.storage.local.set({ recordingTabId: recordingTabId });
     // Inject into all existing tabs except the recorder tab
     const tabs = await chrome.tabs.query({});
     for (const existingTab of tabs) {

@@ -104,6 +104,22 @@ const resetDialogHTML = `
     </div>
 `;
 
+const deleteDialogCSS = resetDialogCSS;  // We can reuse the same CSS
+
+const deleteDialogHTML = `
+    <div class="btg-record-reset__overlay btg-delete-overlay">
+        <div class="btg-record-reset__dialog">
+            <button class="btg-record-reset__close">×</button>
+            <h3 class="btg-record-reset__heading">Delete recording</h3>
+            <p class="btg-record-reset__description">Are you sure you want to delete the recording?<br>This action cannot be undone.</p>
+            <div class="btg-record-reset__button-container">
+                <button class="btg-record-reset__button btg-record-reset__button--cancel btg-delete-cancel">Keep recording</button>
+                <button class="btg-record-reset__button btg-record-reset__button--confirm btg-delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+`;
+
 function injectActionButtons() {
     // Remove existing buttons if present
     const existingContainer = document.querySelector('.btg-action-btns-container');
@@ -189,7 +205,7 @@ function injectActionButtons() {
         grabButton.style.cursor = 'grab';
 
         infoButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'infoRecording' });
+            chrome.runtime.sendMessage({ action: 'showRecorderTab' });
         };
         resetButton.onclick = () => {
             // Pause recording first
@@ -259,7 +275,72 @@ function injectActionButtons() {
             };
         };
         deleteButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'deleteRecording' });
+            // Pause recording first
+            chrome.runtime.sendMessage({ action: 'pauseRecording' });
+
+            // Remove existing dialog if present
+            const existingDialog = document.querySelector('.btg-delete-overlay');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+
+            // Remove existing styles if present
+            const existingStyles = document.querySelector('#btg-delete-dialog-styles');
+            if (existingStyles) {
+                existingStyles.remove();
+            }
+
+            // Inject CSS
+            const style = document.createElement('style');
+            style.id = 'btg-delete-dialog-styles';
+            style.textContent = deleteDialogCSS;
+            document.head.appendChild(style);
+
+            // Create temp container and inject HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = deleteDialogHTML;
+            document.body.appendChild(tempDiv.firstElementChild);
+
+            // Get dialog elements
+            const overlay = document.querySelector('.btg-delete-overlay');
+            const cancelBtn = document.querySelector('.btg-delete-cancel');
+            const closeBtn = document.querySelector('.btg-record-reset__close');
+            const confirmBtn = document.querySelector('.btg-delete-confirm');
+
+            // Function to remove dialog and resume recording
+            const cleanupAndResume = () => {
+                overlay.remove();
+                style.remove();
+                chrome.runtime.sendMessage({ action: 'resumeRecording' });
+            };
+
+            // Handle cancel button click
+            cancelBtn.onclick = cleanupAndResume;
+
+            // Handle close button click
+            closeBtn.onclick = cleanupAndResume;
+
+            // Handle click outside dialog
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanupAndResume();
+                }
+            };
+
+            // Handle tab change
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && overlay) {
+                    cleanupAndResume();
+                }
+            });
+
+            // Handle confirm button click
+            confirmBtn.onclick = () => {
+                overlay.remove();
+                style.remove();
+                chrome.runtime.sendMessage({ action: 'confirmDeleteRecording' });
+                container.remove();
+            };
         };
         stopButton.onclick = () => {
             chrome.runtime.sendMessage({ action: 'stopRecording' });
