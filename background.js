@@ -45,6 +45,10 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         injectActionButton(tab.id);
       }
     }
+  } else if (message.action === 'switchToRecordingTab') {
+    if (recordingTabId) {
+      await chrome.tabs.update(recordingTabId, { active: true });
+    }
   } else if (message.action === 'stopRecording') {
     isRecording = false;
     if (recordingTabId) {

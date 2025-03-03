@@ -83,7 +83,7 @@ function injectActionButtons() {
         grabButton.style.cursor = 'grab';
 
         infoButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'infoRecording' });
+            chrome.runtime.sendMessage({ action: 'switchToRecordingTab' });
         };
         resetButton.onclick = () => {
             chrome.runtime.sendMessage({ action: 'resetRecording' });
