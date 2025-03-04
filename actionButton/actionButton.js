@@ -12,7 +12,7 @@ function injectActionButtons() {
         
         // Add styles for draggable functionality
         container.style.position = 'fixed';
-        container.style.zIndex = '99999';
+        container.style.zIndex = '99998';
         container.style.left = '20px';
         container.style.bottom = '20px';
         container.style.cursor = 'default';

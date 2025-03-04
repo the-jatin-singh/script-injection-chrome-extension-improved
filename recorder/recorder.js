@@ -38,7 +38,7 @@ function injectCountdownAndWait() {
     overlay.style.display = "flex";
     overlay.style.alignItems = "center";
     overlay.style.justifyContent = "center";
-    overlay.style.zIndex = "9999";
+    overlay.style.zIndex = "99999";
     document.body.appendChild(overlay);
 
     // Disable interactions with background content
