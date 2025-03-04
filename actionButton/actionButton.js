@@ -86,10 +86,10 @@ function injectActionButtons() {
             chrome.runtime.sendMessage({ action: 'switchToRecordingTab' });
         };
         resetButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'resetRecording' });
+            openResetRecording();
         };
         deleteButton.onclick = () => {
-            chrome.runtime.sendMessage({ action: 'deleteRecording' });
+            openDeleteRecording();
         };
         stopButton.onclick = () => {
             chrome.runtime.sendMessage({ action: 'stopRecording' });
@@ -209,6 +209,116 @@ function injectActionButtons() {
             }
         });
     }
+}
+
+function createDialog(type) {
+    const dialog = document.createElement('div');
+    dialog.className = `btg-dialog ${type}-dialog`;
+    dialog.innerHTML = `
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3>${type === 'delete' ? 'Delete Recording' : 'Reset Recording'}</h3>
+                <span class="close-dialog">&times;</span>
+            </div>
+            <div class="dialog-body">
+                <p>${type === 'delete' ? 'Are you sure you want to delete this recording?' : 'Are you sure you want to reset this recording?'}</p>
+            </div>
+            <div class="dialog-footer">
+                <button class="cancel-btn">Resume recording</button>
+                <button class="confirm-btn">${type === 'delete' ? 'Delete' : 'Restart'}</button>
+            </div>
+        </div>
+    `;
+    return dialog;
+}
+
+function handleDialogEvents(dialog, type) {
+    const closeBtn = dialog.querySelector('.close-dialog');
+    const cancelBtn = dialog.querySelector('.cancel-btn');
+    const confirmBtn = dialog.querySelector('.confirm-btn');
+    const dialogContent = dialog.querySelector('.dialog-content');
+
+    const handleCancel = () => {
+        if (type === 'delete') {
+            cancelDeleteRecording();
+        } else {
+            cancelResetRecording();
+        }
+    };
+
+    const handleOutsideClick = (e) => {
+        if (!dialogContent.contains(e.target)) {
+            handleCancel();
+        }
+    };
+
+    closeBtn.onclick = handleCancel;
+    cancelBtn.onclick = handleCancel;
+    dialog.onclick = handleOutsideClick;
+
+    confirmBtn.onclick = () => {
+        if (type === 'delete') {
+            confirmDeleteRecording();
+        } else {
+            confirmResetRecording();
+        }
+    };
+
+    // Handle tab change
+    document.addEventListener('visibilitychange', handleCancel);
+
+    return () => {
+        document.removeEventListener('visibilitychange', handleCancel);
+    };
+}
+
+function openDeleteRecording() {
+    chrome.runtime.sendMessage({ action: 'pauseRecording' });
+    const dialog = createDialog('delete');
+    document.body.appendChild(dialog);
+    return handleDialogEvents(dialog, 'delete');
+}
+
+function openResetRecording() {
+    chrome.runtime.sendMessage({ action: 'pauseRecording' });
+    const dialog = createDialog('reset');
+    document.body.appendChild(dialog);
+    return handleDialogEvents(dialog, 'reset');
+}
+
+function cancelDeleteRecording() {
+    const dialog = document.querySelector('.btg-dialog.delete-dialog');
+    if (dialog) {
+        dialog.remove();
+        chrome.runtime.sendMessage({ action: 'resumeRecording' });
+    }
+}
+
+function cancelResetRecording() {
+    const dialog = document.querySelector('.btg-dialog.reset-dialog');
+    if (dialog) {
+        dialog.remove();
+        chrome.runtime.sendMessage({ action: 'resumeRecording' });
+    }
+}
+
+function confirmDeleteRecording() {
+    const dialog = document.querySelector('.btg-dialog.delete-dialog');
+    if (dialog) {
+        dialog.remove();
+    }
+    chrome.runtime.sendMessage({ action: 'deleteRecording' });
+}
+
+function confirmResetRecording() {
+    // Remove any open dialogs
+    const deleteDialog = document.querySelector('.btg-dialog.delete-dialog');
+    const resetDialog = document.querySelector('.btg-dialog.reset-dialog');
+    if (deleteDialog) deleteDialog.remove();
+    if (resetDialog) resetDialog.remove();
+
+    // Simply send reset message to background script
+    chrome.runtime.sendMessage({ action: 'resetRecording' });
 }
 
 injectActionButtons();

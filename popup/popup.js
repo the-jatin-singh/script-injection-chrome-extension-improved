@@ -13,109 +13,172 @@ function isValidUrl(url) {
 
 async function injectOverlay(tab) {
   const overlayCSS = `
+      .btg-overlay-wrapper {
+          all: initial;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+      }
+      
+      .btg-overlay-wrapper * {
+          all: unset;
+          box-sizing: border-box !important;
+      }
+
       .btg-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 999999;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background: rgba(0, 0, 0, 0.5) !important;
+          z-index: 2147483647 !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          font-family: inherit !important;
       }
 
       .btg-content {
-          background: #F7FAF8;
-          padding: 20px;
-          border-radius: 8px;
-          position: absolute;
-          top: 0px;
-          right: 160px;
-          width: 320px;
-          height: 300px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          background: #F7FAF8 !important;
+          padding: 40px 28px !important;
+          border-radius: 12px !important;
+          position: absolute !important;
+          top: 0px !important;
+          right: 200px !important;
+          width: 448px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap:32px !important;
+          box-shadow: 0px 2px 4px 0px #00000014 !important;
+      }
+      .btg-popup-header{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border: 1px solid #D9E7E0 !important;
+        background-color: white !important;
+        height: 60px !important;
+        width:100% !important;
+        border-radius: 6px !important;
       }
 
       .btg-close {
-          cursor: pointer;
-          color: black;
-          font-size: 16px;
-          align-self: flex-end;
-          margin-bottom: 10px;
-      }
-
-      .btg-heading {
-          font-size: 18px;
-          margin-bottom: 10px;
-          color: #333;
+          cursor: pointer !important;
       }
 
       .recording-container {
-          width: 100%;
-          background-color: #FFFFFF;
-          border-radius: 8px;
-          padding: 15px;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 10px;
+          width: 100% !important;
+          background-color: #FFFFFF !important;
+          border-radius: 6px !important;
+          border: 1px solid #D9E7E0 !important;
+          padding: 32px 20px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 32px !important;
+      }
+
+      .recording-container-information{
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap:6px !important;
+      }
+
+      .recording-container h2 {
+          display: block !important;
+          color: #191F1F !important;
+          font-size: 20px !important;
+          font-weight: 6pp !important;
+          line-height: 26px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
+      .recording-container p {
+          display: block !important;
+          color: #191F1F !important;
+          font-size: 16px !important;
+          line-height: 20.8px !important;
+          margin: 0 !important;
+          padding: 0 !important;
       }
 
       .green-line {
-          width: 25px;
-          height: 4px;
-          background-color: #12B97B;
-          border-radius: 2px;
+          width: 20px !important;
+          height: 3px !important;
+          background-color: #12B97B !important;
+          border: 3px solid #12B97B !important;
+          display: block !important;
       }
 
       .btg-start-button {
-          height: 40px;
-          width: 100%;
-          font-size: 14px;
-          font-weight: 600;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          background-color: #12B97B;
-          color: #FFFFFF;
-          border: 1px solid #12B97B;
-          transition: 0.2s;
+          height: 40px !important;
+          width: 100% !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          border: 1px solid #12B97B !important;
+          border-radius: 8px !important;
+          cursor: pointer !important;
+          background-color: #12B97B !important;
+          color: #FFFFFF !important;
+          transition: all 0.2s ease !important;
+          display: block !important;
+          text-align: center !important;
+          line-height: 40px !important;
       }
 
       .btg-start-button:hover {
-          background-color: #0C372A;
-          color: #00D596;
+          background-color: #0C372A !important;
+          color: #00D596 !important;
       }
 
       .btg-footer {
-          margin-top: auto;
-          font-size: 12px;
-          color: #5A706A;
+          height: 56px !important;
+          width: 100%;
+          padding: 0 20px !important;
+          background-color: white !important;
+          border-radius: 6px !important;
+
+          font-size: 16px !important;
+          font-weight: 600 !important;
+
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          border: 1px solid #D9E7E0 !important;
       }
 
       .btg-footer a {
-          color: #12B97B;
-          text-decoration: underline;
-          cursor: pointer;
+          color: #12B97B !important;
+          text-decoration: underline !important;
+          cursor: pointer !important;
+          display: inline !important;
       }
   `;
 
   const overlayHTML = `
-      <div class="btg-overlay">
-          <div class="btg-content">
-              <div class="btg-close">X</div>
-              <h4 class="btg-heading">Use BotGauge</h4>
-              <div class="recording-container">
-                  <div class="green-line"></div>
-                  <p>Use BotGauge’s recording bot to capture video and audio while explaining the actions/pages to be tested.</p>
-                  <button class="btg-start-button">Start Recording</button>
-              </div>
-              <div class="btg-footer">
-                  <p>Need more help? <a href="https://botgauge.com/contact/" target="_blank">Contact support</a></p>
+      <div class="btg-overlay-wrapper">
+          <div class="btg-overlay">
+              <div class="btg-content">
+                  <div class="btg-popup-header">
+
+                    <svg class="btg-close" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.3603 14.5027C16.5805 14.7229 16.7041 15.0215 16.7041 15.3328C16.7041 15.6442 16.5805 15.9427 16.3603 16.1629C16.1402 16.383 15.8416 16.5067 15.5302 16.5067C15.2189 16.5067 14.9203 16.383 14.7002 16.1629L8.49996 9.96074L2.29781 16.1609C2.07766 16.3811 1.77907 16.5048 1.46773 16.5048C1.15639 16.5048 0.857803 16.3811 0.637653 16.1609C0.417503 15.9408 0.293823 15.6422 0.293823 15.3309C0.293823 15.0195 0.417503 14.7209 0.637653 14.5008L6.8398 8.30059L0.639606 2.09844C0.419455 1.87829 0.295776 1.5797 0.295776 1.26836C0.295776 0.95702 0.419455 0.658432 0.639606 0.438282C0.859756 0.218131 1.15834 0.0944517 1.46968 0.0944517C1.78102 0.0944517 2.07961 0.218131 2.29976 0.438282L8.49996 6.64043L14.7021 0.437305C14.9223 0.217154 15.2208 0.0934753 15.5322 0.0934753C15.8435 0.0934753 16.1421 0.217154 16.3623 0.437305C16.5824 0.657455 16.7061 0.956043 16.7061 1.26738C16.7061 1.57872 16.5824 1.87731 16.3623 2.09746L10.1601 8.30059L16.3603 14.5027Z" fill="#869891"/>
+                    </svg>
+                  </div>
+                  <div class="recording-container">
+                      <div class="recording-container-information">
+                        <div class="green-line"></div>
+                        <h2>How to use?</h2>
+                        <p>Use BotGauge’s recording bot to capture video and audio while explaining the actions/pages to be tested.</p>
+                      </div>
+                      <button class="btg-start-button">Start Recording</button>
+                  </div>
+                  <div class="btg-footer">
+                      <p>Need more help?</p>
+                       <a href="https://botgauge.com/contact/" target="_blank">Contact support</a>
+                  </div>
               </div>
           </div>
       </div>

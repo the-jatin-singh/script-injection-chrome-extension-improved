@@ -128,5 +128,65 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         injectActionButton(existingTab.id);
       }
     }
+  } else if (message.action === 'deleteRecording') {
+    isRecording = false;
+    if (recordingTabId) {
+      // Remove action buttons from all tabs
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: () => {
+              const actionBtnContainer = document.querySelector('.btg-action-btns-container');
+              if (actionBtnContainer) actionBtnContainer.remove();
+            }
+          });
+        } catch (e) {
+          console.log(`Could not clean up tab ${tab.id}:`, e);
+        }
+      }
+      // Close the recording tab
+      await chrome.tabs.remove(recordingTabId);
+      recordingTabId = null;
+    }
+  } else if (message.action === 'resetRecording') {
+    if (recordingTabId) {
+      // First clean up existing recording state
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: () => {
+              const actionBtnContainer = document.querySelector('.btg-action-btns-container');
+              if (actionBtnContainer) actionBtnContainer.remove();
+            }
+          });
+        } catch (e) {
+          console.log(`Could not clean up tab ${tab.id}:`, e);
+        }
+      }
+      
+      // Close the existing recording tab
+      await chrome.tabs.remove(recordingTabId);
+      recordingTabId = null;
+      
+      // Create new recording tab
+      const tab = await chrome.tabs.create({
+        url: 'recorder/recorder.html',
+        pinned: true
+      });
+      recordingTabId = tab.id;
+      isRecording = true;
+      
+      // Inject into all existing tabs except the new recorder tab
+      const newTabs = await chrome.tabs.query({});
+      for (const existingTab of newTabs) {
+        if (existingTab.id !== recordingTabId && existingTab.id !== chrome.tabs.TAB_ID_NONE) {
+          injectActionButton(existingTab.id);
+        }
+      }
+    }
   }
 });

@@ -221,6 +221,8 @@ async function startRecording() {
             });
           });
         }
+      } else if (message.action === 'resetRecording') {
+        resetRecording();
       }
     });
 
@@ -240,6 +242,26 @@ async function startRecording() {
   }
 }
 
+async function resetRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    // Stop current recording
+    clearInterval(timerInterval);
+    // mediaRecorder.stop();
+    // mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    
+    // Reset timer variables
+    startTime = null;
+    pausedTime = 0;
+    isPaused = false;
+    pauseStartTime = 0;
+    
+    // Clear recorded chunks
+    recordedChunks = [];
+    
+    // Start new recording
+    startRecording();
+  }
+}
 
 function handleDataAvailable(event) {
   if (event.data.size > 0) {
