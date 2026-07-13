@@ -5,6 +5,8 @@ let startTime;
 let pausedTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
+let recordingEvents = [];
+let totalPausedTime = 0;
 
 function updateTimer() {
   if (!isPaused) {
@@ -227,8 +229,12 @@ function handleDataAvailable(event) {
 function handleStop() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
   const blobUrl = URL.createObjectURL(blob);
-  chrome.tabs.create({ 
-    url: `/viewer/viewer.html?blobUrl=${encodeURIComponent(blobUrl)}` 
+
+  // Recorded events already live in chrome.storage.local; the viewer reads
+  // them directly from there (a URL param would risk hitting length limits
+  // for longer recordings with many events).
+  chrome.tabs.create({
+    url: `/viewer/viewer.html?blobUrl=${encodeURIComponent(blobUrl)}`
   }, (tab) => {
     chrome.runtime.sendMessage({ action: 'closePinnedTab', newTabId: tab.id });
   });

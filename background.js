@@ -35,18 +35,33 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     recordingTabId = message.tabId;
     isRecording = true;
 
-    // Store the tab ID
-    await chrome.storage.local.set({ recordingTabId: recordingTabId });
+    // Store the tab ID and recording start time
+    await chrome.storage.local.set({ 
+      recordingTabId: recordingTabId,
+      recordingStartTime: Date.now(),
+      isRecordingActive: true,
+      recordedEvents: []
+    });
 
     // Inject into all existing tabs except the recorder tab
     const tabs = await chrome.tabs.query({});
     for (const tab of tabs) {
       if (tab.id !== recordingTabId && tab.id !== chrome.tabs.TAB_ID_NONE) {
         injectActionButton(tab.id);
+        // Notify tab that recording has started
+        try {
+          chrome.tabs.sendMessage(tab.id, { action: 'recordingStarted' });
+        } catch (e) {
+          console.log(`Could not notify tab ${tab.id}:`, e);
+        }
       }
     }
   } else if (message.action === 'stopRecording') {
     isRecording = false;
+    
+    // Update recording state
+    await chrome.storage.local.set({ isRecordingActive: false });
+    
     if (recordingTabId) {
       chrome.tabs.sendMessage(recordingTabId, { action: 'stopRecording' });
       // Remove stop buttons from all tabs
@@ -60,6 +75,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
                 if (actionBtnContainer) actionBtnContainer.remove();
               }
             });
+            // Notify tab that recording has stopped
+            chrome.tabs.sendMessage(tab.id, { action: 'recordingStopped' });
           } catch (e) {
             console.log(`Could not clean up tab ${tab.id}:`, e);
           }
@@ -85,11 +102,25 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     });
     recordingTabId = tab.id;
     isRecording = true;
+    
+    // Store recording start time
+    await chrome.storage.local.set({ 
+      recordingStartTime: Date.now(),
+      isRecordingActive: true,
+      recordedEvents: []
+    });
+    
     // Inject into all existing tabs except the recorder tab
     const tabs = await chrome.tabs.query({});
     for (const existingTab of tabs) {
       if (existingTab.id !== recordingTabId && existingTab.id !== chrome.tabs.TAB_ID_NONE) {
         injectActionButton(existingTab.id);
+        // Notify tab that recording has started
+        try {
+          chrome.tabs.sendMessage(existingTab.id, { action: 'recordingStarted' });
+        } catch (e) {
+          console.log(`Could not notify tab ${existingTab.id}:`, e);
+        }
       }
     }
   }

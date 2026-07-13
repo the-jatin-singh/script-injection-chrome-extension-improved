@@ -212,3 +212,214 @@ function injectActionButtons() {
 }
 
 injectActionButtons();
+
+// ========== EVENT CAPTURE SYSTEM ==========
+let recordingStartTime = null;
+let isRecordingActive = false;
+let capturedEvents = [];
+
+// Get recording start time and status
+chrome.storage.local.get(['recordingStartTime', 'isRecordingActive'], (result) => {
+    recordingStartTime = result.recordingStartTime;
+    isRecordingActive = result.isRecordingActive;
+});
+
+// Listen for recording state changes
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'recordingStarted') {
+        recordingStartTime = Date.now();
+        isRecordingActive = true;
+        capturedEvents = [];
+        chrome.storage.local.set({ recordingStartTime, isRecordingActive });
+    } else if (message.action === 'recordingStopped') {
+        isRecordingActive = false;
+        chrome.storage.local.set({ isRecordingActive: false });
+    }
+});
+
+// Helper function to get element details.
+// Resolves a human-readable label the way an accessibility tree / QA tool would:
+// visible text, then <label for="id">/wrapping <label>, then aria-label /
+// aria-labelledby, then placeholder/title, then name/id/tag as a last resort.
+// This matters most for icon-only controls (e.g. GitHub's icon buttons) whose
+// textContent is empty but whose aria-label carries the real meaning.
+function getElementDetails(element) {
+    const tagName = element.tagName ? element.tagName.toLowerCase() : '';
+    const id = element.id || '';
+    const name = element.name || '';
+    const type = element.type || '';
+    const placeholder = element.placeholder || '';
+    const role = (element.getAttribute && element.getAttribute('role')) || '';
+    const ariaLabel = (element.getAttribute && element.getAttribute('aria-label')) || '';
+    const title = (element.getAttribute && element.getAttribute('title')) || '';
+
+    let associatedLabel = '';
+    if (element.labels && element.labels.length > 0) {
+        associatedLabel = element.labels[0].textContent.trim();
+    } else if (id) {
+        const forLabel = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+        if (forLabel) associatedLabel = forLabel.textContent.trim();
+    }
+
+    let labelledByText = '';
+    const labelledById = element.getAttribute && element.getAttribute('aria-labelledby');
+    if (labelledById) {
+        const labelledByEl = document.getElementById(labelledById.split(' ')[0]);
+        if (labelledByEl) labelledByText = labelledByEl.textContent.trim();
+    }
+
+    const ownText = element.textContent ? element.textContent.trim().substring(0, 80) : '';
+
+    const description = ownText || associatedLabel || ariaLabel || labelledByText ||
+        placeholder || title || name || id || tagName;
+
+    const classSelector = typeof element.className === 'string' && element.className.trim()
+        ? '.' + element.className.trim().split(/\s+/).join('.')
+        : '';
+    const selector = tagName + (id ? `#${id}` : '') + classSelector;
+
+    return {
+        selector,
+        description: description.trim(),
+        tag: tagName,
+        type,
+        id,
+        name,
+        placeholder,
+        ariaLabel,
+        role
+    };
+}
+
+// Function to capture and store event
+function captureEvent(eventType, element, details = {}, labelOverride = null) {
+    if (!isRecordingActive || !recordingStartTime) return;
+
+    const timestamp = Date.now() - recordingStartTime;
+    const elementInfo = getElementDetails(element);
+
+    const event = {
+        timestamp,
+        type: eventType,
+        element: elementInfo.selector,
+        label: labelOverride || elementInfo.description,
+        // Extra DOM info useful for QA/test-case generation, since the CSS
+        // selector alone is often just a hashed/auto-generated classname.
+        elementId: elementInfo.id || null,
+        elementName: elementInfo.name || null,
+        elementType: elementInfo.type || null,
+        role: elementInfo.role || null,
+        ariaLabel: elementInfo.ariaLabel || null,
+        details,
+        url: window.location.href,
+        tabTitle: document.title
+    };
+
+    // Store event in chrome storage
+    chrome.storage.local.get('recordedEvents', (result) => {
+        const events = result.recordedEvents || [];
+        events.push(event);
+        chrome.storage.local.set({ recordedEvents: events });
+    });
+}
+
+// CLICK EVENT CAPTURE
+const CLICKABLE_ROLES = ['button', 'link', 'checkbox', 'radio', 'menuitem', 'tab', 'switch', 'option'];
+document.addEventListener('click', (e) => {
+    if (isRecordingActive && recordingStartTime) {
+        const clickedElement = e.target;
+        const tagName = clickedElement.tagName.toLowerCase();
+        const role = clickedElement.getAttribute && clickedElement.getAttribute('role');
+
+        // Capture button clicks, form inputs, links, contenteditable areas,
+        // and anything with an interactive ARIA role (e.g. custom icon buttons).
+        if (tagName === 'button' || tagName === 'a' || tagName === 'input' ||
+            tagName === 'select' || tagName === 'textarea' ||
+            clickedElement.isContentEditable ||
+            (role && CLICKABLE_ROLES.includes(role))) {
+
+            captureEvent('click', clickedElement, {
+                x: e.clientX,
+                y: e.clientY
+            });
+        }
+    }
+}, true); // Use capture phase
+
+// FORM INPUT CAPTURE
+document.addEventListener('change', (e) => {
+    if (isRecordingActive && recordingStartTime) {
+        const element = e.target;
+        const tagName = element.tagName.toLowerCase();
+        
+        if (tagName === 'input' || tagName === 'select' || tagName === 'textarea') {
+            let value = element.value;
+            
+            // Don't capture sensitive inputs
+            if (element.type === 'password') {
+                value = '***';
+            }
+            
+            captureEvent('change', element, {
+                value: value,
+                inputType: element.type || 'text'
+            });
+        }
+    }
+}, true);
+
+// TEXT INPUT CAPTURE (with debounce)
+let inputTimeout;
+document.addEventListener('input', (e) => {
+    if (isRecordingActive && recordingStartTime) {
+        const element = e.target;
+        const tagName = element.tagName.toLowerCase();
+        const isEditable = element.isContentEditable;
+
+        // Also capture contenteditable areas (rich-text editors that aren't
+        // real <textarea>/<input> elements, e.g. comment/description boxes).
+        if (isEditable || tagName === 'textarea' || (tagName === 'input' && element.type !== 'password')) {
+            clearTimeout(inputTimeout);
+            inputTimeout = setTimeout(() => {
+                const value = isEditable ? element.textContent : element.value;
+                captureEvent('input', element, {
+                    value: value.substring(0, 200), // Limit length
+                    inputType: isEditable ? 'contenteditable' : (element.type || 'text')
+                });
+            }, 500); // Debounce 500ms
+        }
+    }
+}, true);
+
+// SUBMIT EVENT CAPTURE
+document.addEventListener('submit', (e) => {
+    if (isRecordingActive && recordingStartTime) {
+        captureEvent('submit', e.target, {
+            formName: e.target.name || 'form'
+        });
+    }
+}, true);
+
+// SCROLL EVENT CAPTURE (throttled)
+let lastScrollCapture = 0;
+window.addEventListener('scroll', () => {
+    if (isRecordingActive && recordingStartTime) {
+        const now = Date.now();
+        if (now - lastScrollCapture > 1000) { // Capture every 1 second
+            lastScrollCapture = now;
+            captureEvent('scroll', document.documentElement, {
+                scrollX: window.scrollX,
+                scrollY: window.scrollY
+            }, 'Page scroll');
+        }
+    }
+}, true);
+
+// NAVIGATION CAPTURE
+window.addEventListener('beforeunload', () => {
+    if (isRecordingActive && recordingStartTime) {
+        captureEvent('navigation', document.documentElement, {
+            fromUrl: window.location.href
+        }, 'Page navigation');
+    }
+});
