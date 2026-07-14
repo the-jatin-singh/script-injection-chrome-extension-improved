@@ -1,6 +1,36 @@
 let recordingTabId = null;
 let isRecording = false;
 
+// Single in-memory source of truth for recorded events, written through a
+// serialized queue. Every tab's content script funnels its captured events
+// here via the 'recordEvent' message instead of each doing its own
+// storage.get -> push -> storage.set: two of those racing (e.g. a click and
+// the 'beforeunload' it triggers, or two tabs at once) silently clobber each
+// other since both read the array before either writes it back. Routing
+// through one process with one queue makes appends atomic.
+let recordedEvents = [];
+let recordedEventsLoaded = false;
+let eventWriteQueue = Promise.resolve();
+
+function resetRecordedEvents() {
+  recordedEvents = [];
+  recordedEventsLoaded = true;
+  eventWriteQueue = Promise.resolve();
+}
+
+function queueEventWrite(event) {
+  eventWriteQueue = eventWriteQueue.then(async () => {
+    if (!recordedEventsLoaded) {
+      const stored = await chrome.storage.local.get('recordedEvents');
+      recordedEvents = stored.recordedEvents || [];
+      recordedEventsLoaded = true;
+    }
+    recordedEvents.push(event);
+    await chrome.storage.local.set({ recordedEvents });
+  });
+  return eventWriteQueue;
+}
+
 async function injectActionButton(tabId) {
   try {
     await chrome.scripting.insertCSS({
@@ -36,7 +66,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     isRecording = true;
 
     // Store the tab ID and recording start time
-    await chrome.storage.local.set({ 
+    resetRecordedEvents();
+    await chrome.storage.local.set({
       recordingTabId: recordingTabId,
       recordingStartTime: Date.now(),
       isRecordingActive: true,
@@ -56,6 +87,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         }
       }
     }
+  } else if (message.action === 'recordEvent') {
+    queueEventWrite(message.event);
   } else if (message.action === 'stopRecording') {
     isRecording = false;
     
@@ -102,9 +135,10 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     });
     recordingTabId = tab.id;
     isRecording = true;
-    
+
     // Store recording start time
-    await chrome.storage.local.set({ 
+    resetRecordedEvents();
+    await chrome.storage.local.set({
       recordingStartTime: Date.now(),
       isRecordingActive: true,
       recordedEvents: []

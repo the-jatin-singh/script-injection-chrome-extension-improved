@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Surface the raw DOM info (selector/id/role/aria-label) inline so
             // it's visible without downloading the JSON.
             const metaParts = [event.element];
+            if (event.uniqueSelector) metaParts.push(`locator=${event.uniqueSelector}`);
             if (event.elementId) metaParts.push(`id=${event.elementId}`);
             if (event.role) metaParts.push(`role=${event.role}`);
             if (event.ariaLabel) metaParts.push(`aria-label="${event.ariaLabel}"`);

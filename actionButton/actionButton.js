@@ -237,12 +237,111 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
+// Interactive elements/roles we consider "clickable" for the purposes of
+// resolving the *real* target of a click (see resolveInteractiveElement).
+const CLICKABLE_ROLES = ['button', 'link', 'checkbox', 'radio', 'menuitem', 'tab', 'switch', 'option'];
+const INTERACTIVE_SELECTOR = [
+    'button', 'a[href]', 'input', 'select', 'textarea', '[contenteditable="true"]',
+    '[role="button"]', '[role="link"]', '[role="checkbox"]', '[role="radio"]',
+    '[role="menuitem"]', '[role="tab"]', '[role="switch"]', '[role="option"]',
+    '[tabindex]', '[onclick]'
+].join(', ');
+
+// A click's e.target is often an inner icon/span/svg with no text or
+// attributes of its own (e.g. an <svg> inside a <button>, or a <span> of
+// text inside an <a>). Walking up to the nearest real interactive ancestor
+// is what makes three visually-different buttons resolve to three
+// different, correctly-labeled elements instead of all collapsing to the
+// same generic "svg"/"span" description.
+function resolveInteractiveElement(element) {
+    if (!element || !element.closest) return element;
+    const ancestor = element.closest(INTERACTIVE_SELECTOR);
+    return ancestor || element;
+}
+
+// Builds a selector that is unique on the page right now, the same way
+// DevTools "Copy selector" / Playwright codegen do it: prefer a stable
+// test hook or id, otherwise walk up the tree appending
+// tag:nth-of-type(n) segments (scoped to the parent) until the resulting
+// selector resolves to exactly one element. This is what makes the
+// recorded locator actually distinguish "button 1/2/3" even when they
+// share identical classes and have no text/aria-label at all.
+function buildUniqueSelector(element) {
+    if (!element || element.nodeType !== 1) return '';
+
+    // Prefer explicit QA/test hooks - these are what most automation tools
+    // (Playwright, Cypress, Testigma, Selenium) recommend and are stable
+    // across CSS/markup refactors.
+    const testHookAttrs = ['data-testid', 'data-test-id', 'data-test', 'data-qa', 'data-cy'];
+    for (const attr of testHookAttrs) {
+        const value = element.getAttribute && element.getAttribute(attr);
+        if (value) {
+            const sel = `[${attr}="${CSS.escape(value)}"]`;
+            if (document.querySelectorAll(sel).length === 1) return sel;
+        }
+    }
+
+    if (element.id && document.getElementById(element.id) === element) {
+        const sel = `#${CSS.escape(element.id)}`;
+        if (document.querySelectorAll(sel).length === 1) return sel;
+    }
+
+    const segments = [];
+    let node = element;
+    while (node && node.nodeType === 1 && node !== document.documentElement) {
+        const tag = node.tagName.toLowerCase();
+        let segment = tag;
+
+        if (node.id && document.getElementById(node.id) === node) {
+            segment = `${tag}#${CSS.escape(node.id)}`;
+            segments.unshift(segment);
+            break; // an id anchors the path; no need to go further up
+        }
+
+        const parent = node.parentElement;
+        if (parent) {
+            const siblingsOfSameTag = Array.from(parent.children).filter(
+                (child) => child.tagName === node.tagName
+            );
+            if (siblingsOfSameTag.length > 1) {
+                const index = siblingsOfSameTag.indexOf(node) + 1;
+                segment = `${tag}:nth-of-type(${index})`;
+            }
+        }
+
+        segments.unshift(segment);
+
+        const candidate = segments.join(' > ');
+        if (document.querySelectorAll(candidate).length === 1) {
+            return candidate;
+        }
+
+        node = parent;
+    }
+
+    return segments.join(' > ');
+}
+
 // Helper function to get element details.
 // Resolves a human-readable label the way an accessibility tree / QA tool would:
 // visible text, then <label for="id">/wrapping <label>, then aria-label /
 // aria-labelledby, then placeholder/title, then name/id/tag as a last resort.
 // This matters most for icon-only controls (e.g. GitHub's icon buttons) whose
 // textContent is empty but whose aria-label carries the real meaning.
+// Collapses runs of whitespace/newlines from raw textContent into single
+// spaces. Real pages routinely indent their markup, so `textContent` on
+// anything but a leaf node comes back full of "\n      " - without this,
+// labels render as visibly broken multi-line garbage.
+function collapseWhitespace(text) {
+    return text ? text.replace(/\s+/g, ' ').trim() : '';
+}
+
+// Containers whose direct textContent is a dump of every descendant's text
+// (a <form> wrapping a whole search bar + hidden a11y copy, for example)
+// rather than a meaningful label of their own. For these we skip straight
+// to aria-label/name/id instead of using the noisy full-subtree text.
+const CONTAINER_TAGS_WITHOUT_OWN_TEXT = ['form', 'div', 'section', 'nav', 'ul', 'ol', 'table'];
+
 function getElementDetails(element) {
     const tagName = element.tagName ? element.tagName.toLowerCase() : '';
     const id = element.id || '';
@@ -252,34 +351,66 @@ function getElementDetails(element) {
     const role = (element.getAttribute && element.getAttribute('role')) || '';
     const ariaLabel = (element.getAttribute && element.getAttribute('aria-label')) || '';
     const title = (element.getAttribute && element.getAttribute('title')) || '';
+    const value = (element.type === 'submit' || element.type === 'button') ? (element.value || '') : '';
+    const alt = (element.getAttribute && element.getAttribute('alt')) || '';
 
     let associatedLabel = '';
     if (element.labels && element.labels.length > 0) {
-        associatedLabel = element.labels[0].textContent.trim();
+        associatedLabel = collapseWhitespace(element.labels[0].textContent);
     } else if (id) {
         const forLabel = document.querySelector(`label[for="${CSS.escape(id)}"]`);
-        if (forLabel) associatedLabel = forLabel.textContent.trim();
+        if (forLabel) associatedLabel = collapseWhitespace(forLabel.textContent);
     }
 
     let labelledByText = '';
     const labelledById = element.getAttribute && element.getAttribute('aria-labelledby');
     if (labelledById) {
         const labelledByEl = document.getElementById(labelledById.split(' ')[0]);
-        if (labelledByEl) labelledByText = labelledByEl.textContent.trim();
+        if (labelledByEl) labelledByText = collapseWhitespace(labelledByEl.textContent);
     }
 
-    const ownText = element.textContent ? element.textContent.trim().substring(0, 80) : '';
-
-    const description = ownText || associatedLabel || ariaLabel || labelledByText ||
-        placeholder || title || name || id || tagName;
-
-    const classSelector = typeof element.className === 'string' && element.className.trim()
-        ? '.' + element.className.trim().split(/\s+/).join('.')
+    const ownText = !CONTAINER_TAGS_WITHOUT_OWN_TEXT.includes(tagName)
+        ? collapseWhitespace(element.textContent).substring(0, 80)
         : '';
+
+    let description = ownText || associatedLabel || ariaLabel || labelledByText ||
+        value || placeholder || title || alt || name || id || tagName;
+    description = description.trim();
+
+    // Last-resort disambiguation: if the description is so generic (bare tag
+    // name, no text/aria-label/id at all) that several elements on the page
+    // would produce the exact same label, append its occurrence index among
+    // its identical-looking siblings so "button" becomes "button (2 of 3)"
+    // instead of being indistinguishable from the other two.
+    const isGenericDescription = description === tagName;
+    if (isGenericDescription) {
+        const sameTagElements = Array.from(document.getElementsByTagName(tagName || 'div'));
+        if (sameTagElements.length > 1) {
+            const index = sameTagElements.indexOf(element) + 1;
+            description = `${description} (${index} of ${sameTagElements.length})`;
+        }
+    }
+
+    const uniqueSelector = buildUniqueSelector(element);
+
+    // Cap the classes shown in the human-readable `selector` field. Sites
+    // routinely stack a dozen+ utility/feature-detection classes onto <html>
+    // or <body> (Modernizr-style: "a-ws a-js a-audio a-canvas ..."); dumping
+    // all of them turns every navigation/scroll event's `element` field into
+    // an unreadable wall of text that adds no identifying value (there's
+    // only one <html>/<body> per document - it's already unique by tag alone).
+    const MAX_CLASSES_IN_SELECTOR = 3;
+    const classes = typeof element.className === 'string' && element.className.trim()
+        ? element.className.trim().split(/\s+/)
+        : [];
+    const classSelector = (tagName === 'html' || tagName === 'body' || classes.length === 0)
+        ? ''
+        : '.' + classes.slice(0, MAX_CLASSES_IN_SELECTOR).join('.');
     const selector = tagName + (id ? `#${id}` : '') + classSelector;
 
     return {
         selector,
+        uniqueSelector,
         description: description.trim(),
         tag: tagName,
         type,
@@ -303,6 +434,11 @@ function captureEvent(eventType, element, details = {}, labelOverride = null) {
         type: eventType,
         element: elementInfo.selector,
         label: labelOverride || elementInfo.description,
+        // A selector guaranteed unique on the page at capture time (data-testid
+        // > id > tag:nth-of-type path) - this is what QA tools should copy
+        // into a locator so the exact element clicked can be re-identified,
+        // even when several elements share identical classes/text.
+        uniqueSelector: elementInfo.uniqueSelector || null,
         // Extra DOM info useful for QA/test-case generation, since the CSS
         // selector alone is often just a hashed/auto-generated classname.
         elementId: elementInfo.id || null,
@@ -315,20 +451,27 @@ function captureEvent(eventType, element, details = {}, labelOverride = null) {
         tabTitle: document.title
     };
 
-    // Store event in chrome storage
-    chrome.storage.local.get('recordedEvents', (result) => {
-        const events = result.recordedEvents || [];
-        events.push(event);
-        chrome.storage.local.set({ recordedEvents: events });
-    });
+    // Hand the event to the background script rather than doing our own
+    // storage.get -> push -> storage.set here. A click that also triggers a
+    // page navigation fires both this handler and the 'beforeunload' handler
+    // in the same tab; both used to read the array before either had written
+    // it back, so whichever set() ran last silently clobbered the other
+    // event. The background script is a single serialized writer per event,
+    // so two events landing at the same instant can no longer overwrite one
+    // another (confirmed against a real recording where 3 tab clicks that
+    // each triggered navigation produced 3 "navigation" events and zero
+    // "click" events).
+    chrome.runtime.sendMessage({ action: 'recordEvent', event });
 }
 
 // CLICK EVENT CAPTURE
-const CLICKABLE_ROLES = ['button', 'link', 'checkbox', 'radio', 'menuitem', 'tab', 'switch', 'option'];
 document.addEventListener('click', (e) => {
     if (isRecordingActive && recordingStartTime) {
-        const clickedElement = e.target;
-        const tagName = clickedElement.tagName.toLowerCase();
+        // e.target is often an inner icon/span/svg with no identifying text
+        // or attributes of its own - resolve up to the real button/link/etc.
+        // so distinct controls don't all collapse into the same generic label.
+        const clickedElement = resolveInteractiveElement(e.target);
+        const tagName = clickedElement.tagName ? clickedElement.tagName.toLowerCase() : '';
         const role = clickedElement.getAttribute && clickedElement.getAttribute('role');
 
         // Capture button clicks, form inputs, links, contenteditable areas,
@@ -345,6 +488,29 @@ document.addEventListener('click', (e) => {
         }
     }
 }, true); // Use capture phase
+
+// ENTER KEY CAPTURE
+// A user pressing Enter in a field (e.g. a search box) is functionally a
+// submit/click even though no button was pressed. QA needs the same
+// "which exact field" identification for this as for a real button click,
+// so it gets the same resolved element + uniqueSelector treatment.
+document.addEventListener('keydown', (e) => {
+    if (isRecordingActive && recordingStartTime && e.key === 'Enter') {
+        const element = e.target;
+        const tagName = element.tagName ? element.tagName.toLowerCase() : '';
+        const isEditable = element.isContentEditable;
+
+        if (tagName === 'input' || tagName === 'textarea' || isEditable) {
+            let value = isEditable ? element.textContent : element.value;
+            if (element.type === 'password') value = '***';
+
+            captureEvent('keypress-enter', element, {
+                value: (value || '').substring(0, 200),
+                inputType: isEditable ? 'contenteditable' : (element.type || 'text')
+            }, `Pressed Enter in "${getElementDetails(element).description}"`);
+        }
+    }
+}, true);
 
 // FORM INPUT CAPTURE
 document.addEventListener('change', (e) => {
