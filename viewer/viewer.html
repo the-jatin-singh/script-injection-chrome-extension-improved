@@ -56,6 +56,13 @@
             height: calc(100vh - 68px - 2rem);
         }
 
+        .video-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
         video {
             width: 60vw;
             border: 1px solid #ccc;
@@ -259,7 +266,10 @@
         </a>
     </nav>
     <div class="main-container">
-        <video id="recordingPlayer" controls autoplay></video>
+        <div class="video-container">
+            <video id="recordingPlayer" controls autoplay></video>
+            <button class="download-btn" id="downloadVideoBtn">Download Video</button>
+        </div>
         <div class="main-right">
             <div class="right-content">
                 <img class="success-img" src="../assets/success-recording.svg" alt="recorded-successfully">

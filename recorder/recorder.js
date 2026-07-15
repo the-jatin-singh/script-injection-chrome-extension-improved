@@ -226,15 +226,61 @@ function handleDataAvailable(event) {
   }
 }
 
-function handleStop() {
+const VIDEO_DB_NAME = 'botgauge-videos';
+const VIDEO_STORE_NAME = 'videos';
+
+// The viewer's "Download Video" button used a blob: URL created in this tab,
+// but background.js closes this tab shortly after the viewer opens - once
+// that happens the blob: URL dies and the download fails with a network
+// error. IndexedDB is durable and shared across every page of this
+// extension, so we persist the actual video bytes here and let the viewer
+// read them back independently and mint its own, locally-valid blob URL.
+function saveVideoBlob(key, blob) {
+  return new Promise((resolve, reject) => {
+    const openReq = indexedDB.open(VIDEO_DB_NAME, 1);
+    openReq.onupgradeneeded = () => {
+      openReq.result.createObjectStore(VIDEO_STORE_NAME);
+    };
+    openReq.onerror = () => reject(openReq.error);
+    openReq.onsuccess = () => {
+      const db = openReq.result;
+      const tx = db.transaction(VIDEO_STORE_NAME, 'readwrite');
+      tx.objectStore(VIDEO_STORE_NAME).put(blob, key);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+
+async function handleStop() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
   const blobUrl = URL.createObjectURL(blob);
+  const videoKey = `recording-${Date.now()}`;
+
+  // Save the actual video file to disk now, while this page (the only
+  // place holding a live reference to the Blob) is still open. This
+  // guarantees a real file lands in Downloads regardless of what happens to
+  // any tab afterwards.
+  const downloadLink = document.createElement('a');
+  downloadLink.href = blobUrl;
+  downloadLink.download = `${videoKey}.webm`;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+
+  // Persist to IndexedDB *before* opening the viewer tab, so the viewer can
+  // load the video on its own regardless of when this tab gets closed.
+  try {
+    await saveVideoBlob(videoKey, blob);
+  } catch (err) {
+    console.error('Could not persist recorded video for the viewer:', err);
+  }
 
   // Recorded events already live in chrome.storage.local; the viewer reads
   // them directly from there (a URL param would risk hitting length limits
   // for longer recordings with many events).
   chrome.tabs.create({
-    url: `/viewer/viewer.html?blobUrl=${encodeURIComponent(blobUrl)}`
+    url: `/viewer/viewer.html?videoKey=${encodeURIComponent(videoKey)}`
   }, (tab) => {
     chrome.runtime.sendMessage({ action: 'closePinnedTab', newTabId: tab.id });
   });

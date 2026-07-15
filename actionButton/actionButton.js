@@ -481,6 +481,15 @@ document.addEventListener('click', (e) => {
             clickedElement.isContentEditable ||
             (role && CLICKABLE_ROLES.includes(role))) {
 
+            // A link with a `download` attribute is the browser's own signal
+            // that clicking it saves a file rather than navigating. During a
+            // recording we only want to log that the click happened, not
+            // actually pull the file into the tester's Downloads folder
+            // every time this page interaction is captured.
+            if (clickedElement.hasAttribute && clickedElement.hasAttribute('download')) {
+                e.preventDefault();
+            }
+
             captureEvent('click', clickedElement, {
                 x: e.clientX,
                 y: e.clientY

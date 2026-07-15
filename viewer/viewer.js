@@ -6,14 +6,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     
     let recordedEvents = [];
-    
-    // Get the blob URL from the URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const blobUrl = urlParams.get('blobUrl');
+    let videoBlobUrl = null;
 
-    if (blobUrl) {
-        videoPlayer.src = blobUrl;
+    const VIDEO_DB_NAME = 'botgauge-videos';
+    const VIDEO_STORE_NAME = 'videos';
+
+    // Reads the video back out of IndexedDB (recorder.js put it there right
+    // after recording stopped) and removes it - this page is the only
+    // consumer. Doing it this way, instead of receiving a blob: URL from the
+    // recorder tab, means playback and download both keep working even
+    // after that tab is closed, since the blob URL minted below belongs to
+    // this page's own document.
+    function loadVideoBlob(key) {
+        return new Promise((resolve, reject) => {
+            const openReq = indexedDB.open(VIDEO_DB_NAME, 1);
+            openReq.onupgradeneeded = () => {
+                openReq.result.createObjectStore(VIDEO_STORE_NAME);
+            };
+            openReq.onerror = () => reject(openReq.error);
+            openReq.onsuccess = () => {
+                const db = openReq.result;
+                const tx = db.transaction(VIDEO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(VIDEO_STORE_NAME);
+                const getReq = store.get(key);
+                getReq.onsuccess = () => {
+                    const blob = getReq.result;
+                    store.delete(key);
+                    tx.oncomplete = () => { db.close(); resolve(blob); };
+                };
+                getReq.onerror = () => reject(getReq.error);
+            };
+        });
     }
+
+    // Get the video key from the URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoKey = urlParams.get('videoKey');
+
+    if (videoKey) {
+        loadVideoBlob(videoKey).then((blob) => {
+            if (blob) {
+                videoBlobUrl = URL.createObjectURL(blob);
+                videoPlayer.src = videoBlobUrl;
+            }
+        }).catch((err) => {
+            console.error('Could not load recorded video:', err);
+        });
+    }
+
+    const downloadVideoBtn = document.getElementById('downloadVideoBtn');
+    downloadVideoBtn.addEventListener('click', () => {
+        if (!videoBlobUrl) return;
+        const link = document.createElement('a');
+        link.href = videoBlobUrl;
+        link.download = `recording-${Date.now()}.webm`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
 
     // Load the recorded events (click/input/scroll/etc. with labels and
     // timestamps) that actionButton.js captured during recording.
@@ -119,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const reRecordButton = document.getElementById('reRecordButton');
     reRecordButton.addEventListener('click', () => {
         videoPlayer.pause();
-        if (blobUrl) {
-            URL.revokeObjectURL(blobUrl);
+        if (videoBlobUrl) {
+            URL.revokeObjectURL(videoBlobUrl);
         }
         chrome.storage.local.remove('recordedEvents');
         chrome.runtime.sendMessage({ action: 'createRecordingTab' });
