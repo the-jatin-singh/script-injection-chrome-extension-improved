@@ -114,9 +114,25 @@ function initializeRecorderControls() {
 
 async function startRecording() {
   try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
+    const displayStream = await navigator.mediaDevices.getDisplayMedia({
       video: { mediaSource: "screen" }
     });
+
+    // Microphone audio is captured separately from screen video - getDisplayMedia's
+    // audio option only ever offers system/tab audio, never the mic. Mic permission
+    // can be denied independently of screen-share permission, so fall back to a
+    // video-only recording rather than aborting the whole capture.
+    let micStream = null;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (micErr) {
+      console.warn('Microphone unavailable, recording video only:', micErr);
+    }
+
+    const stream = new MediaStream([
+      ...displayStream.getVideoTracks(),
+      ...(micStream ? micStream.getAudioTracks() : [])
+    ]);
 
     // Update UI to show recording status
     document.getElementById('pre-recording').style.display = 'none';
